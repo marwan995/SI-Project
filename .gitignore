@@ -4,3 +4,5 @@ random_forest_model.pkl
 random_forest_model87.pkl
 random_forest_model8852.pkl
 *.pyc
+output/
+*.csv
