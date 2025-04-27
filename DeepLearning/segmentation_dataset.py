@@ -8,6 +8,34 @@ import os
 
 
 class SegmentationDataset(Dataset):
+    """
+    PyTorch Dataset for loading multi-band satellite imagery and masks for segmentation tasks.
+
+    This dataset handles TIFF/TIF format images with corresponding mask files,
+    applying optional transforms and automatically performing min-max normalization.
+
+    Parameters
+    ----------
+    image_dir : str
+        Directory containing input images (multi-band TIFF/TIF files).
+    mask_dir : str
+        Directory containing corresponding mask files (single-band TIFF/TIF files).
+    transform : callable, optional
+        Transformations to be applied to the input images. If provided, masks will be
+        resized to match the transformed image dimensions (default: None).
+
+    Attributes
+    ----------
+    image_filenames : list[str]
+        List of valid image filenames (excluding those in images_to_remove).
+
+    Methods
+    -------
+    __len__()
+        Returns the number of samples in the dataset.
+    __getitem__(idx)
+        Returns the idx-th sample (image, mask, filename).
+    """
     def __init__(self, image_dir, mask_dir, transform=None):
         self.image_dir = image_dir
         self.mask_dir = mask_dir
@@ -19,9 +47,36 @@ class SegmentationDataset(Dataset):
         ]
 
     def __len__(self):
+        """
+        Return the number of samples in the dataset.
+
+        Returns
+        -------
+        int
+            Number of samples in the dataset.
+        """
         return len(self.image_filenames)
 
     def __getitem__(self, idx):
+        """
+        Get the idx-th sample from the dataset.
+
+        Parameters
+        ----------
+        idx : int
+            Index of the sample to retrieve.
+
+        Returns
+        -------
+        tuple
+            Contains:
+            - image : torch.Tensor
+                4-channel normalized image tensor (4, H, W)
+            - mask : torch.Tensor
+                Binary mask tensor (1, H, W)
+            - img_name : str
+                Original filename of the sample
+        """
         img_name = self.image_filenames[idx]
         img_path = os.path.join(self.image_dir, img_name)
         mask_path = os.path.join(self.mask_dir, img_name)

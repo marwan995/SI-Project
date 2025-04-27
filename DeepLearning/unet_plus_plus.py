@@ -6,6 +6,34 @@ from collections import defaultdict
 
 
 class ConvBlock(nn.Module):
+    """
+    A double convolutional block with batch normalization and ReLU activation.
+    
+    This block consists of two consecutive 3x3 convolutions, each followed by
+    batch normalization and ReLU activation. Weights are initialized using
+    Kaiming normal initialization for convolutions and constant initialization
+    for batch norm layers.
+
+    Parameters
+    ----------
+    in_channels : int
+        Number of input channels.
+    out_channels : int
+        Number of output channels.
+
+    Attributes
+    ----------
+    double_conv : nn.Sequential
+        The sequential container holding the double convolution layers with
+        batch norm and activations.
+
+    Methods
+    -------
+    forward(x)
+        Forward pass of the block.
+    _init_weights()
+        Initializes weights for convolutional and batch norm layers.
+    """
     def __init__(self, in_channels, out_channels):
         super(ConvBlock, self).__init__()
         self.double_conv = nn.Sequential(
@@ -19,6 +47,9 @@ class ConvBlock(nn.Module):
         self._init_weights()
 
     def _init_weights(self):
+        """
+        Initialize weights using Kaiming normal for conv layers and constants for batch norm.
+        """
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, nonlinearity="relu")
@@ -27,10 +58,60 @@ class ConvBlock(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
+        """
+        Forward pass through the double convolution block.
+        
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (batch_size, in_channels, height, width).
+            
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape (batch_size, out_channels, height, width).
+        """
         return self.double_conv(x)
 
 
 class UNetPlusPlus(nn.Module):
+    """
+    Implementation of UNet++ (Nested UNet) architecture for image segmentation.
+    
+    This architecture features nested and dense skip connections between encoder
+    and decoder paths, improving gradient flow and feature propagation compared
+    to standard UNet. Supports deep supervision for multi-level outputs.
+
+    Parameters
+    ----------
+    in_channels : int, optional
+        Number of input channels (default: 4).
+    out_channels : int, optional
+        Number of output channels/classes (default: 1).
+    feature_channels : list[int], optional
+        Number of channels at each encoder level (default: [32, 64, 128, 256, 512]).
+    deep_supervision : bool, optional
+        Whether to enable deep supervision (output at multiple decoder levels)
+        (default: False).
+
+    Attributes
+    ----------
+    encX_0 : ConvBlock
+        Encoder blocks where X is the level (0-4).
+    decX_Y : ConvBlock
+        Decoder blocks where X is the starting level and Y is the nesting level.
+    final* : nn.Conv2d
+        Final 1x1 convolution layers for output.
+    maxpool : nn.MaxPool2d
+        Max pooling layer for downsampling.
+    up : nn.Upsample
+        Upsampling layer with bilinear interpolation.
+
+    Methods
+    -------
+    forward(x)
+        Forward pass through the network.
+    """
     def __init__(
         self,
         in_channels=4,
@@ -96,6 +177,22 @@ class UNetPlusPlus(nn.Module):
         self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
 
     def forward(self, x):
+        """
+        Forward pass through the UNet++ network.
+        
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor of shape (batch_size, in_channels, height, width).
+            
+        Returns
+        -------
+        torch.Tensor or list[torch.Tensor]
+            - If deep_supervision=False: Single output tensor of shape 
+              (batch_size, out_channels, height, width)
+            - If deep_supervision=True: List of output tensors from multiple
+              decoder levels (shapes may vary by level)
+        """
         # Encoder
         x0_0 = self.enc0_0(x)
         x1_0 = self.enc1_0(self.maxpool(x0_0))
@@ -137,6 +234,36 @@ class UNetPlusPlus(nn.Module):
 def train_model(
     model, train_loader, val_loader, optimizer, scheduler, device, num_epochs=10
 ):
+    """
+    Train a segmentation model with validation and learning rate scheduling.
+    
+    Performs training and validation loops for the specified number of epochs,
+    tracking BCE loss, Dice loss, and combined loss. Implements gradient clipping,
+    model checkpointing, and learning rate scheduling.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The segmentation model to train.
+    train_loader : torch.utils.data.DataLoader
+        DataLoader for training data yielding (inputs, masks, _).
+    val_loader : torch.utils.data.DataLoader
+        DataLoader for validation data yielding (inputs, masks, _).
+    optimizer : torch.optim.Optimizer
+        Optimizer for model parameter updates.
+    scheduler : torch.optim.lr_scheduler._LRScheduler or None
+        Learning rate scheduler (e.g., ReduceLROnPlateau). Can be None.
+    device : torch.device
+        Device to train on ('cuda' or 'cpu').
+    num_epochs : int, optional
+        Number of training epochs (default: 10).
+
+    Returns
+    -------
+    torch.nn.Module
+        The trained model.
+    """
+
     best_loss = float("inf")
 
     for epoch in range(num_epochs):

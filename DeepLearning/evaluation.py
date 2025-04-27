@@ -6,6 +6,27 @@ import numpy as np
 
 
 def dice_loss(pred, target, smooth=1e-6):
+    """
+    Compute the Dice loss between predicted and target tensors.
+    
+    The Dice loss is a measure of overlap between two samples, commonly used for
+    image segmentation tasks. It ranges from 0 (perfect match) to 1 (no overlap).
+    
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Predicted probabilities or logits of shape (N, C, H, W), where
+        N is batch size, C is number of classes, H is height, and W is width.
+    target : torch.Tensor
+        Ground truth target values of shape (N, C, H, W), with binary values.
+    smooth : float, optional
+        Smoothing factor to avoid division by zero (default: 1e-6).
+        
+    Returns
+    -------
+    torch.Tensor
+        Computed Dice loss (scalar tensor).
+    """
     pred = pred.contiguous()
     target = target.contiguous()
 
@@ -19,6 +40,34 @@ def dice_loss(pred, target, smooth=1e-6):
 
 
 def calc_loss(pred, target, metrics, bce_weight=0.5):
+    """
+    Calculate combined BCE-Dice loss and update metrics dictionary.
+    
+    This function computes a weighted combination of Binary Cross-Entropy (BCE) loss
+    and Dice loss, which is commonly used for image segmentation tasks. It also updates
+    a metrics dictionary with the current loss values.
+    
+    Parameters
+    ----------
+    pred : torch.Tensor
+        Raw prediction logits from the model of shape (N, C, H, W), where
+        N is batch size, C is number of classes, H is height, and W is width.
+    target : torch.Tensor
+        Ground truth target values of shape (N, C, H, W), with binary values.
+    metrics : dict
+        Dictionary to accumulate loss metrics. Will be updated with:
+        - 'bce': Binary Cross-Entropy loss
+        - 'dice': Dice loss
+        - 'loss': Combined loss
+    bce_weight : float, optional
+        Weight for BCE loss in the combined loss (default: 0.5).
+        Dice weight will be (1 - bce_weight).
+        
+    Returns
+    -------
+    torch.Tensor
+        The computed combined loss (scalar tensor).
+    """
     # Binary cross-entropy loss
     bce = F.binary_cross_entropy_with_logits(pred, target)
 
@@ -39,6 +88,35 @@ def calc_loss(pred, target, metrics, bce_weight=0.5):
 
 
 def evaluate_and_collect(model, dataloader, device):
+    """
+    Evaluate a segmentation model and collect results with IoU metrics.
+    
+    Runs inference on the provided dataloader, computes Intersection-over-Union (IoU)
+    for each sample, and collects inputs, predictions, labels, IoU scores, and filenames.
+    Results are sorted by IoU score (ascending).
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Segmentation model to evaluate (should output logits).
+    dataloader : torch.utils.data.DataLoader
+        Dataloader yielding tuples of (inputs, labels, filenames).
+        Expected shapes:
+        - inputs: (B, C, H, W)
+        - labels: (B, H, W) or (B, 1, H, W)
+    device : torch.device
+        Device to run evaluation on (e.g., 'cuda' or 'cpu').
+
+    Returns
+    -------
+    list[dict]
+        List of result dictionaries sorted by IoU (ascending), each containing:
+        - 'input': Original input tensor (C, H, W) as float32 CPU tensor
+        - 'label': Ground truth mask (H, W) as uint8 numpy array
+        - 'pred': Binary prediction mask (H, W) as uint8 numpy array
+        - 'iou': Computed IoU score (float)
+        - 'filename': Corresponding filename (str)
+    """
     model.eval()
     results = []
 
@@ -81,6 +159,30 @@ def evaluate_and_collect(model, dataloader, device):
 
 
 def show_worst_predictions(results, k=5):
+    """
+    Visualize the k worst predictions based on IoU scores.
+    
+    Displays a grid of the worst performing predictions (lowest IoU) with input images,
+    ground truth masks, predicted masks, and their IoU scores. Also prints unique values
+    found in the ground truth and prediction masks for verification.
+
+    Parameters
+    ----------
+    results : list[dict]
+        List of result dictionaries (typically from evaluate_and_collect) containing:
+        - 'input': Input tensor (C, H, W)
+        - 'label': Ground truth mask (H, W) as numpy array
+        - 'pred': Prediction mask (H, W) as numpy array
+        - 'iou': IoU score (float)
+        - 'filename': Original filename (str)
+    k : int, optional
+        Number of worst predictions to display (default: 5).
+
+    Returns
+    -------
+    None
+        Displays matplotlib figures and prints diagnostic information.
+    """
     for i, result in enumerate(results[:k]):
         input_img = result["input"].permute(1, 2, 0).numpy()
         input_img = (input_img - input_img.min()) / (
@@ -118,6 +220,30 @@ def show_worst_predictions(results, k=5):
 
 
 def evaluate_dice_score(model, dataloader, device):
+    """
+    Evaluate a segmentation model using Dice score metric.
+
+    Computes the average Dice score (1 - Dice loss) across the entire dataset.
+    The Dice score measures the similarity between predicted and ground truth masks,
+    with 1.0 indicating perfect overlap and 0.0 indicating no overlap.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        Segmentation model to evaluate (should output logits).
+    dataloader : torch.utils.data.DataLoader
+        Dataloader yielding tuples of (inputs, targets, _).
+        Expected shapes:
+        - inputs: (B, C, H, W) where B is batch size, C is channels
+        - targets: (B, H, W) or (B, 1, H, W) binary masks
+    device : torch.device
+        Device to run evaluation on ('cuda' or 'cpu').
+
+    Returns
+    -------
+    float
+        Average Dice score across all samples in the dataloader.
+    """
     model.eval()
     total_dice = 0.0
     total_samples = 0
