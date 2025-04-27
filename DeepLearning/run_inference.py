@@ -11,18 +11,20 @@ import torchvision.transforms as T
 from unet_plus_plus import UNetPlusPlus, ConvBlock
 from encode_decode import rle_encode
 
+
 def load_model(model_path, device):
     model = UNetPlusPlus().to(device)
-    
+
     state = torch.load(model_path, map_location=device)
-    
+
     if "state_dict" in state:
         model.load_state_dict(state["state_dict"])
     else:
         model.load_state_dict(state)
-    
+
     model.eval()
     return model
+
 
 def preprocess_image(path, transform, device):
     # read 4-band image
@@ -35,9 +37,10 @@ def preprocess_image(path, transform, device):
     # add batch dim
     return tensor.unsqueeze(0).to(device)
 
+
 def run_inference(input_folder, model_path, output_csv, device):
     # build resize transform
-    transform = T.Compose([ T.Resize((256, 256)) ])
+    transform = T.Compose([T.Resize((256, 256))])
     # load model
     model = load_model(model_path, device)
 
@@ -47,7 +50,9 @@ def run_inference(input_folder, model_path, output_csv, device):
         file_id = os.path.splitext(os.path.basename(path))[0]
         inp = preprocess_image(path, transform, device)
         with torch.no_grad():
-            out = model(inp)  # tensor of shape (1, 1, 256, 256) or list if deep_supervision
+            out = model(
+                inp
+            )  # tensor of shape (1, 1, 256, 256) or list if deep_supervision
             # if deep_supervision, take last output
             if isinstance(out, (list, tuple)):
                 out = out[-1]
@@ -64,9 +69,10 @@ def run_inference(input_folder, model_path, output_csv, device):
     df.to_csv(output_csv, index=False)
     print(f"Saved submission to {output_csv}")
 
+
 def run_inference_with_mask(input_folder, model_path, output_csv, device):
     # build resize transform
-    transform = T.Compose([ T.Resize((256, 256)) ])
+    transform = T.Compose([T.Resize((256, 256))])
     # load model
     model = load_model(model_path, device)
 
@@ -80,7 +86,9 @@ def run_inference_with_mask(input_folder, model_path, output_csv, device):
         file_id = os.path.splitext(os.path.basename(path))[0]
         inp = preprocess_image(path, transform, device)
         with torch.no_grad():
-            out = model(inp)  # tensor of shape (1, 1, 256, 256) or list if deep_supervision
+            out = model(
+                inp
+            )  # tensor of shape (1, 1, 256, 256) or list if deep_supervision
             # if deep_supervision, take last output
             if isinstance(out, (list, tuple)):
                 out = out[-1]
@@ -88,7 +96,7 @@ def run_inference_with_mask(input_folder, model_path, output_csv, device):
         mask = out.squeeze().cpu().numpy()
         # threshold to binary
         mask_bin = (mask > 0.5).astype(np.uint8)
-        
+
         # RLE encode
         rle = rle_encode(mask_bin)
         records.append((file_id, rle))
@@ -98,6 +106,7 @@ def run_inference_with_mask(input_folder, model_path, output_csv, device):
         # scale to 0-255 for saving
         mask_img = (mask_bin * 255).astype(np.uint8)
         from PIL import Image
+
         Image.fromarray(mask_img).save(output_path)
 
     # save CSV
@@ -106,48 +115,53 @@ def run_inference_with_mask(input_folder, model_path, output_csv, device):
     print(f"Saved submission to {output_csv}")
     print(f"Masks saved to folder: {output_folder}")
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Run inference on a folder of TIFFs and produce a submission CSV"
     )
     parser.add_argument(
-        "--input_folder", "-i", required=True,
-        help="Path to folder containing test .tif files"
+        "--input_folder",
+        "-i",
+        required=True,
+        help="Path to folder containing test .tif files",
     )
     parser.add_argument(
-        "--model_path", "-m", default="dl_9166.pth",
-        help="Path to your saved model (.pth)"
+        "--model_path",
+        "-m",
+        default="dl_9166.pth",
+        help="Path to your saved model (.pth)",
     )
     parser.add_argument(
-        "--output_csv", "-o", default="predictions.csv",
-        help="Where to write the submission CSV"
+        "--output_csv",
+        "-o",
+        default="predictions.csv",
+        help="Where to write the submission CSV",
     )
     parser.add_argument(
-        "--device", "-d", default="cuda",
-        help="Torch device to use (cpu or cuda)"
+        "--device", "-d", default="cuda", help="Torch device to use (cpu or cuda)"
     )
     parser.add_argument(
-        "--masks", action="store_true",
-        help="Flag to output the masks themselves"
+        "--masks", action="store_true", help="Flag to output the masks themselves"
     )
 
     args = parser.parse_args()
-    
+
     if args.masks:
         run_inference_with_mask(
             input_folder=args.input_folder,
             model_path=args.model_path,
             output_csv=args.output_csv,
-            device=torch.device(args.device)
+            device=torch.device(args.device),
         )
     else:
         run_inference(
             input_folder=args.input_folder,
             model_path=args.model_path,
             output_csv=args.output_csv,
-            device=torch.device(args.device)
+            device=torch.device(args.device),
         )
-        
+
 
 if __name__ == "__main__":
     main()
