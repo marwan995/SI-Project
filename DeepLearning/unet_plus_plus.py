@@ -8,7 +8,7 @@ from collections import defaultdict
 class ConvBlock(nn.Module):
     """
     A double convolutional block with batch normalization and ReLU activation.
-    
+
     This block consists of two consecutive 3x3 convolutions, each followed by
     batch normalization and ReLU activation. Weights are initialized using
     Kaiming normal initialization for convolutions and constant initialization
@@ -34,6 +34,7 @@ class ConvBlock(nn.Module):
     _init_weights()
         Initializes weights for convolutional and batch norm layers.
     """
+
     def __init__(self, in_channels, out_channels):
         super(ConvBlock, self).__init__()
         self.double_conv = nn.Sequential(
@@ -60,12 +61,12 @@ class ConvBlock(nn.Module):
     def forward(self, x):
         """
         Forward pass through the double convolution block.
-        
+
         Parameters
         ----------
         x : torch.Tensor
             Input tensor of shape (batch_size, in_channels, height, width).
-            
+
         Returns
         -------
         torch.Tensor
@@ -77,7 +78,7 @@ class ConvBlock(nn.Module):
 class UNetPlusPlus(nn.Module):
     """
     Implementation of UNet++ (Nested UNet) architecture for image segmentation.
-    
+
     This architecture features nested and dense skip connections between encoder
     and decoder paths, improving gradient flow and feature propagation compared
     to standard UNet. Supports deep supervision for multi-level outputs.
@@ -112,6 +113,7 @@ class UNetPlusPlus(nn.Module):
     forward(x)
         Forward pass through the network.
     """
+
     def __init__(
         self,
         in_channels=4,
@@ -179,16 +181,16 @@ class UNetPlusPlus(nn.Module):
     def forward(self, x):
         """
         Forward pass through the UNet++ network.
-        
+
         Parameters
         ----------
         x : torch.Tensor
             Input tensor of shape (batch_size, in_channels, height, width).
-            
+
         Returns
         -------
         torch.Tensor or list[torch.Tensor]
-            - If deep_supervision=False: Single output tensor of shape 
+            - If deep_supervision=False: Single output tensor of shape
               (batch_size, out_channels, height, width)
             - If deep_supervision=True: List of output tensors from multiple
               decoder levels (shapes may vary by level)
@@ -236,7 +238,7 @@ def train_model(
 ):
     """
     Train a segmentation model with validation and learning rate scheduling.
-    
+
     Performs training and validation loops for the specified number of epochs,
     tracking BCE loss, Dice loss, and combined loss. Implements gradient clipping,
     model checkpointing, and learning rate scheduling.

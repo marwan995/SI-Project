@@ -8,10 +8,10 @@ import numpy as np
 def dice_loss(pred, target, smooth=1e-6):
     """
     Compute the Dice loss between predicted and target tensors.
-    
+
     The Dice loss is a measure of overlap between two samples, commonly used for
     image segmentation tasks. It ranges from 0 (perfect match) to 1 (no overlap).
-    
+
     Parameters
     ----------
     pred : torch.Tensor
@@ -21,7 +21,7 @@ def dice_loss(pred, target, smooth=1e-6):
         Ground truth target values of shape (N, C, H, W), with binary values.
     smooth : float, optional
         Smoothing factor to avoid division by zero (default: 1e-6).
-        
+
     Returns
     -------
     torch.Tensor
@@ -42,11 +42,11 @@ def dice_loss(pred, target, smooth=1e-6):
 def calc_loss(pred, target, metrics, bce_weight=0.5):
     """
     Calculate combined BCE-Dice loss and update metrics dictionary.
-    
+
     This function computes a weighted combination of Binary Cross-Entropy (BCE) loss
     and Dice loss, which is commonly used for image segmentation tasks. It also updates
     a metrics dictionary with the current loss values.
-    
+
     Parameters
     ----------
     pred : torch.Tensor
@@ -62,7 +62,7 @@ def calc_loss(pred, target, metrics, bce_weight=0.5):
     bce_weight : float, optional
         Weight for BCE loss in the combined loss (default: 0.5).
         Dice weight will be (1 - bce_weight).
-        
+
     Returns
     -------
     torch.Tensor
@@ -90,7 +90,7 @@ def calc_loss(pred, target, metrics, bce_weight=0.5):
 def evaluate_and_collect(model, dataloader, device):
     """
     Evaluate a segmentation model and collect results with IoU metrics.
-    
+
     Runs inference on the provided dataloader, computes Intersection-over-Union (IoU)
     for each sample, and collects inputs, predictions, labels, IoU scores, and filenames.
     Results are sorted by IoU score (ascending).
@@ -161,7 +161,7 @@ def evaluate_and_collect(model, dataloader, device):
 def show_worst_predictions(results, k=5):
     """
     Visualize the k worst predictions based on IoU scores.
-    
+
     Displays a grid of the worst performing predictions (lowest IoU) with input images,
     ground truth masks, predicted masks, and their IoU scores. Also prints unique values
     found in the ground truth and prediction masks for verification.

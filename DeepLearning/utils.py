@@ -65,7 +65,7 @@ def plot_image_and_mask(image, mask):
         Satellite image as a (H, W, 4) NumPy array.
     mask : ndarray
         Cloud mask as a (H, W) NumPy array.
-    
+
     Returns
     -------
     None
