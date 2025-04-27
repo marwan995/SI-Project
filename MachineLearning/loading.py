@@ -2,7 +2,7 @@ import rasterio
 import cv2
 from const import IMAGES_TO_REMOVE
 from utils import per_band_minmax
-import tqdm
+from tqdm import tqdm
 import numpy as np
 import pickle
 import os
