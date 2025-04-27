@@ -4,3 +4,11 @@ matplotlib
 torch
 torchvision
 tqdm
+pandas
+seaborn
+scikit-learn
+dask
+pickle5
+pickle-mixin
+opencv-python
+pyarrow
