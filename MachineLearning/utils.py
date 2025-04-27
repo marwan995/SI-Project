@@ -7,6 +7,7 @@ from dask import delayed
 from const import IMAGES_PATH, MASKS_PATH
 import pickle
 
+
 def read_and_plot(id):
     """
     Construct file paths for image and mask files based on the given ID.
@@ -29,6 +30,7 @@ def read_and_plot(id):
     image_path = f"{IMAGES_PATH}\\{id}.tif"
     mask_path = f"{MASKS_PATH}\\{id}.tif"
     return image_path, mask_path
+
 
 def per_band_minmax(img):
     """
@@ -93,6 +95,7 @@ def plot_image_and_mask(image, mask):
     plt.imshow(mask, cmap="gray")  # show binary mask
     plt.title("Cloud Mask")
     plt.show()
+
 
 def image_mask_to_df(image, mask):
     """
@@ -236,6 +239,7 @@ def build_training_dataframe(x_data, y_data):
     full_df = pd.concat(df_list, ignore_index=True)
     return full_df
 
+
 def plot_image_mask_pred(model, image, mask, sample_idx=0):
     """
     Visualize an input image, ground truth mask, and model prediction.
@@ -313,6 +317,7 @@ def plot_image_mask_pred(model, image, mask, sample_idx=0):
     plt.show()
     print(np.unique(tgt))
 
+
 def image_mask_to_df_dask(image, mask):
     """
     Convert image-mask pair to a Dask DataFrame using image_mask_to_df.
@@ -383,6 +388,7 @@ def build_training_dataframe_dask(x_data, y_data):
 
     return full_df
 
+
 def plot_prediction(mask_pred, image, true_mask=None):
     """
     Visualize prediction results with optional ground truth comparison.
@@ -437,6 +443,7 @@ def plot_prediction(mask_pred, image, true_mask=None):
 
     plt.tight_layout()
     plt.show()
+
 
 def save_model_and_print_params(model, save_path="random_forest_model.pkl"):
     """

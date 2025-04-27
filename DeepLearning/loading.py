@@ -1,6 +1,7 @@
 import rasterio
 import numpy as np
 
+
 def load_image_and_mask(image_path, mask_path):
     """
     Load a satellite image and its corresponding mask.

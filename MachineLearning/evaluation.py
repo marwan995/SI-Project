@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def evaluate_dice_score(model, images, targets, batch_size=100000):
     """
     Evaluate the Dice similarity coefficient (F1 score) between model predictions and targets.

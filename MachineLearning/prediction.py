@@ -1,5 +1,6 @@
 import tqdm
 
+
 def predict_mask(image, model):
     """
     Generate a pixel-wise mask prediction for an input image.

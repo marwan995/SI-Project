@@ -3,9 +3,10 @@ import cv2
 from const import IMAGES_TO_REMOVE
 from utils import per_band_minmax
 import tqdm
-import numpy as np 
+import numpy as np
 import pickle
 import os
+
 
 def load_image_and_mask(image_path, mask_path, target_size=(256, 256)):
     with rasterio.open(image_path) as img_src:
@@ -25,6 +26,7 @@ def load_image_and_mask(image_path, mask_path, target_size=(256, 256)):
     )  # For masks (preserve class labels)
 
     return image, mask
+
 
 def load_full_dataset(image_dir, mask_dir, limit=None):
     image_files = sorted(os.listdir(image_dir))
@@ -56,6 +58,7 @@ def load_full_dataset(image_dir, mask_dir, limit=None):
     Y = np.array(Y)
 
     return X, Y
+
 
 def load_model(model_path="random_forest_model.pkl"):
     """
