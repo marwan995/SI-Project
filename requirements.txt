@@ -1,0 +1,6 @@
+rasterio
+numpy
+matplotlib
+torch
+torchvision
+tqdm

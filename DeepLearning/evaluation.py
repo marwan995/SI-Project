@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
 
+
 def dice_loss(pred, target, smooth=1e-6):
     pred = pred.contiguous()
     target = target.contiguous()
@@ -11,10 +12,11 @@ def dice_loss(pred, target, smooth=1e-6):
     intersection = (pred * target).sum(dim=(2, 3))
     union = pred.sum(dim=(2, 3)) + target.sum(dim=(2, 3))
 
-    dice = (2. * intersection + smooth) / (union + smooth)
+    dice = (2.0 * intersection + smooth) / (union + smooth)
     dice_loss = 1 - dice.mean()
 
     return dice_loss
+
 
 def calc_loss(pred, target, metrics, bce_weight=0.5):
     # Binary cross-entropy loss
@@ -30,64 +32,68 @@ def calc_loss(pred, target, metrics, bce_weight=0.5):
     loss = bce * bce_weight + dice * (1 - bce_weight)
 
     # Update metrics
-    metrics['bce'] += bce.item()
-    metrics['dice'] += dice.item() 
-    metrics['loss'] += loss.item() 
+    metrics["bce"] += bce.item()
+    metrics["dice"] += dice.item()
+    metrics["loss"] += loss.item()
     return loss
+
 
 def evaluate_and_collect(model, dataloader, device):
     model.eval()
     results = []
-    
+
     def vectorized_iou(pred, target):
         # Input shapes: (B, 1, H, W) for both tensors
         pred = pred.bool()
         target = target.bool()
-        intersection = (pred & target).float().sum(dim=(2, 3)) 
-        union = (pred | target).float().sum(dim=(2, 3))       
-        return (intersection + 1e-6) / (union + 1e-6)          # (B, 1)
+        intersection = (pred & target).float().sum(dim=(2, 3))
+        union = (pred | target).float().sum(dim=(2, 3))
+        return (intersection + 1e-6) / (union + 1e-6)  # (B, 1)
 
     with torch.no_grad():
         for inputs, labels, filenames in dataloader:
             inputs = inputs.to(device)
-            labels = labels.to(device).float()   # Ensure float type
+            labels = labels.to(device).float()  # Ensure float type
             # Forward pass
             outputs = model(inputs)
-            preds = (torch.sigmoid(outputs) > 0.5)  # (B, 1, H, W)
-            
+            preds = torch.sigmoid(outputs) > 0.5  # (B, 1, H, W)
+
             # Add channel dimension if missing (B, H, W) -> (B, 1, H, W)
             if labels.ndim == 3:
                 labels = labels.unsqueeze(1)
-            
+
             # Batch-wise IoU calculation
             batch_ious = vectorized_iou(preds, labels).squeeze(1)  # (B,)
-            
+
             # Process each sample
             for i in range(inputs.size(0)):
-                results.append({
-                    'input': inputs[i].cpu().float(),
-                    'label': labels[i].cpu().numpy().squeeze().astype(np.uint8),
-                    'pred': preds[i].cpu().numpy().squeeze().astype(np.uint8),
-                    'iou': batch_ious[i].item(),
-                    'filename': filenames[i]
-                })
+                results.append(
+                    {
+                        "input": inputs[i].cpu().float(),
+                        "label": labels[i].cpu().numpy().squeeze().astype(np.uint8),
+                        "pred": preds[i].cpu().numpy().squeeze().astype(np.uint8),
+                        "iou": batch_ious[i].item(),
+                        "filename": filenames[i],
+                    }
+                )
 
-    return sorted(results, key=lambda x: x['iou'])
-    
+    return sorted(results, key=lambda x: x["iou"])
+
+
 def show_worst_predictions(results, k=5):
     for i, result in enumerate(results[:k]):
-        input_img = result['input'].permute(1, 2, 0).numpy()
-        input_img = (input_img - input_img.min()) / (input_img.max() - input_img.min())  # Normalize for display
-        label_mask = result['label']
-        pred_mask = result['pred']
-        iou = result['iou']
-        filename = result['filename']
+        input_img = result["input"].permute(1, 2, 0).numpy()
+        input_img = (input_img - input_img.min()) / (
+            input_img.max() - input_img.min()
+        )  # Normalize for display
+        label_mask = result["label"]
+        pred_mask = result["pred"]
+        iou = result["iou"]
+        filename = result["filename"]
 
         # Print unique values for true mask and predicted mask
         unique_true = np.unique(label_mask)
         unique_pred = np.unique(pred_mask)
-
-
 
         # Plot the images
         plt.figure(figsize=(12, 4))
@@ -98,11 +104,11 @@ def show_worst_predictions(results, k=5):
         plt.title("Input Image")
 
         plt.subplot(1, 3, 2)
-        plt.imshow(label_mask, cmap='gray')
+        plt.imshow(label_mask, cmap="gray")
         plt.title("Ground Truth")
 
         plt.subplot(1, 3, 3)
-        plt.imshow(pred_mask, cmap='gray')
+        plt.imshow(pred_mask, cmap="gray")
         plt.title("Prediction")
 
         plt.show()
@@ -118,7 +124,9 @@ def evaluate_dice_score(model, dataloader, device):
 
     with torch.no_grad():
         # Wrap dataloader with tqdm for progress bar
-        for inputs, targets, _ in tqdm(dataloader, desc="Evaluating", total=len(dataloader)):
+        for inputs, targets, _ in tqdm(
+            dataloader, desc="Evaluating", total=len(dataloader)
+        ):
             inputs = inputs.to(device)
             targets = targets.to(device)
             print(inputs.shape)

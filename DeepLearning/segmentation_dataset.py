@@ -4,7 +4,8 @@ from utils import per_band_minmax
 import torch
 import torchvision.transforms as T
 from const import images_to_remove
-import os 
+import os
+
 
 class SegmentationDataset(Dataset):
     def __init__(self, image_dir, mask_dir, transform=None):
@@ -12,7 +13,9 @@ class SegmentationDataset(Dataset):
         self.mask_dir = mask_dir
         self.transform = transform
         self.image_filenames = [
-            f for f in os.listdir(image_dir) if f.endswith(".tiff") or f.endswith(".tif") and not f in images_to_remove
+            f
+            for f in os.listdir(image_dir)
+            if f.endswith(".tiff") or f.endswith(".tif") and not f in images_to_remove
         ]
 
     def __len__(self):
@@ -32,12 +35,10 @@ class SegmentationDataset(Dataset):
 
         image = torch.from_numpy(image).float()  # (4, 512, 512)
         mask = torch.from_numpy(mask).unsqueeze(0).float()  # (1, 512, 512)
-        mask = (mask > 0.5)  # Binary mask
-
+        mask = mask > 0.5  # Binary mask
 
         if self.transform:
             image = self.transform(image)
             mask = T.Resize(image.shape[1:])(mask)
 
-
-        return image, mask,img_name
+        return image, mask, img_name
