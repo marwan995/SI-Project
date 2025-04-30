@@ -107,7 +107,7 @@ def run_inference_with_mask(input_folder, model_path, output_csv, device):
         records.append((file_id, rle))
 
         # save mask as image
-        output_path = os.path.join(output_folder, f"{file_id}_mask.png")
+        output_path = os.path.join(output_folder, f"{file_id}.tif")
         # scale to 0-255 for saving
         mask_img = (mask_bin * 255).astype(np.uint8)
         from PIL import Image
@@ -139,7 +139,7 @@ def main():
     parser.add_argument(
         "--model_path",
         "-m",
-        default="dl_9166.pth",
+        default="model_1.pth",
         help="Path to your saved model (.pth)",
     )
     parser.add_argument(
