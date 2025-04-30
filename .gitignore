@@ -6,4 +6,5 @@ random_forest_model8852.pkl
 *.pyc
 output/
 *.csv
+!Team_11.csv
 data/
