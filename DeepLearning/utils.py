@@ -1,6 +1,11 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+import torch
+from encode_decode import rle_encode
 from const import IMAGES_PATH, MASKS_PATH
+from tqdm import tqdm
 
 
 def per_band_minmax(img):
@@ -96,3 +101,112 @@ def get_result_by_filename(results, target_filename):
         if result["filename"] == target_filename:
             return result
     return None  # If not found
+
+def create_rle_dataframe(data_loader):
+    """
+    Creates a pandas DataFrame from a DataLoader containing image IDs and RLE-encoded masks.
+    
+    Args:
+        data_loader (DataLoader): PyTorch DataLoader yielding (image, mask, img_name) tuples.
+    
+    Returns:
+        pd.DataFrame: DataFrame with columns 'id' (image filename without extension) and
+                      'segmentation' (RLE-encoded mask string).
+    """
+    ids = []
+    segmentations = []
+    
+    # Define resize transform to ensure 512x512 masks
+    #resize = T.Resize((512, 512), interpolation=T.InterpolationMode.NEAREST)
+    
+    # Wrap data_loader with tqdm for progress bar
+    for _, mask, img_name in tqdm(data_loader, desc="Processing masks"):
+        # Handle batched data
+        for i in range(mask.size(0)):  # Iterate over batch dimension
+            # Extract single mask and ensure it's binary
+            single_mask = mask[i]  # Shape: (1, H, W)
+            #single_mask = resize(single_mask)  # Resize to 512x512
+            single_mask = single_mask.squeeze(0)  # Remove channel dimension: (512, 512)
+            single_mask = (single_mask > 0.5).float()  # Ensure binary (0s and 1s)
+            
+            # Convert to NumPy for RLE encoding
+            mask_np = single_mask.cpu().numpy().astype(np.uint8)
+            
+            # Encode mask as RLE
+            rle_string = rle_encode(mask_np)
+            
+            # Extract image ID from filename (remove extension)
+            img_id = os.path.splitext(img_name[i])[0]
+            
+            # Append to lists
+            ids.append(img_id)
+            segmentations.append(rle_string)
+    
+    # Create DataFrame
+    df = pd.DataFrame({
+        'id': ids,
+        'segmentation': segmentations
+    })
+    
+    return df
+
+def create_predicted_rle_dataframe(model, data_loader, device="cuda" if torch.cuda.is_available() else "cpu"):
+    """
+    Creates a pandas DataFrame with predicted mask RLEs from a model and DataLoader.
+    
+    Args:
+        model (nn.Module): Trained PyTorch model (e.g., UNetPlusPlus) for segmentation.
+        data_loader (DataLoader): DataLoader yielding (image, mask, img_name) tuples.
+        device (str or torch.device): Device to run the model on (e.g., 'cuda' or 'cpu').
+    
+    Returns:
+        pd.DataFrame: DataFrame with columns 'id' (image filename without extension) and
+                      'segmentation' (RLE-encoded predicted mask string).
+    """
+    model.eval()  # Set model to evaluation mode
+    model.to(device)  # Move model to the specified device
+    
+    ids = []
+    segmentations = []
+    
+    # Define resize transform to ensure 512x512 masks
+    #resize = T.Resize((512, 512), interpolation=T.InterpolationMode.NEAREST)
+    
+    with torch.no_grad():  # Disable gradient computation for inference
+        # Wrap data_loader with tqdm for progress bar
+        for image, _, img_name in tqdm(data_loader, desc="Generating predictions"):
+            # Move images to device
+            image = image.to(device)
+            
+            # Get model predictions
+            pred = model(image)  # Shape: (batch_size, 1, H, W) or similar
+            pred = torch.sigmoid(pred)  # Convert logits to probabilities
+            pred = (pred > 0.5).float()  # Binarize predictions
+            
+            # Process each prediction in the batch
+            for i in range(pred.size(0)):
+                # Extract single predicted mask
+                single_pred = pred[i]  # Shape: (1, H, W)
+                #single_pred = resize(single_pred)  # Resize to 512x512
+                single_pred = single_pred.squeeze(0)  # Shape: (512, 512)
+                print(single_pred.shape)
+                # Convert to NumPy for RLE encoding
+                pred_np = single_pred.cpu().numpy().astype(np.uint8)
+                
+                # Encode predicted mask as RLE
+                rle_string = rle_encode(pred_np)
+                
+                # Extract image ID from filename (remove extension)
+                img_id = os.path.splitext(img_name[i])[0]
+                
+                # Append to lists
+                ids.append(img_id)
+                segmentations.append(rle_string)
+    
+    # Create DataFrame
+    df = pd.DataFrame({
+        'id': ids,
+        'segmentation': segmentations
+    })
+    
+    return df

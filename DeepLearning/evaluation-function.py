@@ -1,3 +1,4 @@
+import argparse
 import pandas as pd
 import numpy as np
 import pandas.api.types
@@ -86,3 +87,19 @@ def score(
         dice_scores.append(dice_coefficient(solution_mask, submission_mask))
 
     return np.mean(dice_scores)
+
+def main():
+    parser = argparse.ArgumentParser(description="Compute Dice score between ground truth and submission CSVs.")
+    parser.add_argument("--solution", required=True, help="Path to solution CSV file.")
+    parser.add_argument("--submission", required=True, help="Path to submission CSV file.")
+    parser.add_argument("--id_column", default="id", help="Name of the ID column (default: id).")
+
+    args = parser.parse_args()
+
+    solution_df = pd.read_csv(args.solution)
+    submission_df = pd.read_csv(args.submission)
+    dice = score(solution_df, submission_df, args.id_column)
+    print(f"Dice Score: {dice:.4f}")
+
+if __name__ == "__main__":
+    main()

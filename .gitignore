@@ -6,3 +6,4 @@ random_forest_model8852.pkl
 *.pyc
 output/
 *.csv
+data/

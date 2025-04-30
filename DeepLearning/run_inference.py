@@ -64,10 +64,15 @@ def run_inference(input_folder, model_path, output_csv, device):
         rle = rle_encode(mask)
         records.append((file_id, rle))
 
-    # save CSV
-    df = pd.DataFrame(records, columns=["id", "rle"])
+    df = pd.read_csv("sample_submission.csv", dtype={'id': str})
+    for submission in records:
+        df.loc[df['id'] == submission[0], 'segmentation'] = submission[1]
     df.to_csv(output_csv, index=False)
     print(f"Saved submission to {output_csv}")
+    # save CSV
+    # df = pd.DataFrame(records, columns=["id", "segmentation"])
+    # df.to_csv(output_csv, index=False)
+    # print(f"Saved submission to {output_csv}")
 
 
 def run_inference_with_mask(input_folder, model_path, output_csv, device):
@@ -108,10 +113,15 @@ def run_inference_with_mask(input_folder, model_path, output_csv, device):
         from PIL import Image
 
         Image.fromarray(mask_img).save(output_path)
-
-    # save CSV
-    df = pd.DataFrame(records, columns=["id", "rle"])
+    
+    df = pd.read_csv("sample_submission.csv", dtype={'id': str})
+    for submission in records:
+        df.loc[df['id'] == submission[0], 'segmentation'] = submission[1]
     df.to_csv(output_csv, index=False)
+    print(f"Saved submission to {output_csv}")
+    # save CSV
+    # df = pd.DataFrame(records, columns=["id", "segmentation"])
+    # df.to_csv(output_csv, index=False)
     print(f"Saved submission to {output_csv}")
     print(f"Masks saved to folder: {output_folder}")
 
