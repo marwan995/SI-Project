@@ -77,5 +77,5 @@ The model had accuracy on the test set of `87%` which was impressively close to 
 The model had the following specifications
 
 - **Number of Parameters:** 9.16 M
-- **Number of Operations:** 276.72 GOps
+- **Number of Operations:** 69.18 GOps
 - **Size:** 35 MB
